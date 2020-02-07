@@ -100,7 +100,9 @@ function renderItemDetail({ item }) {
 
       </div>
       <div class="article-section">
-        ${url ? `<iframe src="${url}" />` : ''}
+
+      ${url ? `<iframe is="x-frame-bypass" src="${url}"></iframe>` : ''}
+
       </div>
     </div>
   `;
