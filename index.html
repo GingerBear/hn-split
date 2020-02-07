@@ -21,10 +21,14 @@
       a {
         color: black;
       }
+      p {
+        margin-top: 8px;
+        margin-bottom: 0;
+      }
       .title-link {
         line-height: 20px;
         font-size: 20px;
-        margin: 8px 0 16px 0;
+        margin: 16px 0 16px 0;
       }
       .title-link a {
         color: black;
@@ -35,26 +39,32 @@
       .item-link {
         color: black;
         text-decoration: none;
-        font-size: 20px;
+        font-size: 22px;
       }
       .item-link:visited {
         color: #828282;
       }
       .item-metas span {
-        margin-right: 5px;
         color: #777;
       }
-      .kid {
-        margin-bottom: 8px;
-        border-left: 2px solid #ccc;
-        padding-left: 8px;
+      .item-detail-page .item-metas {
+        font-size: 12px;
       }
-      .kids {
-        margin-left: 8px;
+      .kid {
+        border-left: 2px solid #ccc;
+        padding-left: 14px;
+      }
+      .item-by {
+        font-size: 12px;
+        color: #777;
+        border-bottom: 2px solid #ccc;
       }
       .comment-by {
         font-size: 12px;
         color: #777;
+        display: inline-block;
+        line-height: 1;
+        border-bottom: 2px solid #ccc;
       }
       .comment-text {
         margin-bottom: 8px;
@@ -65,7 +75,11 @@
         max-width: 900px;
         margin: 0 auto;
       }
-
+      .loading-page {
+        padding: 8px;
+        max-width: 900px;
+        margin: 0 auto;
+      }
       .item-list-page ul {
         padding-left: 0px;
         margin-top: 8px;
@@ -82,19 +96,30 @@
         height: 100%;
         overflow: scroll;
         padding: 8px 16px;
+        padding-bottom: 50px;
         background-color: rgb(246, 246, 239);
         box-sizing: border-box;
       }
       .item-section h1 {
         font-size: 25px;
-        margin-bottom: 8px;
-        margin-top: 0px;
+        margin-bottom: 0px;
+        margin-top: 8px;
+        line-height: 1.2;
+      }
+      .item-comments > .kid {
+        border-left: none;
+        padding-left: 0;
       }
       .item-url {
-        margin-bottom: 8px;
         color: black;
         font-size: 12px;
+        margin-bottom: 8px;
         display: block;
+      }
+      .item-text {
+        margin-top: 0;
+        font-size: 15px;
+        margin-bottom: 20px;
       }
       .article-section {
         flex: 1;
@@ -113,9 +138,11 @@
       }
     </style>
   </head>
+
   <body></body>
 
   <script src="https://www.gstatic.com/firebasejs/7.8.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/7.8.0/firebase-database.js"></script>
+
   <script type="module" src="./index.js"></script>
 </html>

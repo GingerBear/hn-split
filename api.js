@@ -1,3 +1,5 @@
+// from: https://github.com/vuejs/vue-hackernews-2.0/tree/master/src/api
+
 function createAPI({ config, version }) {
   firebase.initializeApp(config);
   return firebase.database().ref(version);

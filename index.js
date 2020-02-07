@@ -1,12 +1,6 @@
-import {
-  html,
-  Component,
-  render
-} from 'https://unpkg.com/htm/preact/standalone.module.js';
-
 import { fetchIdsByType, fetchItems, fetchItem } from './api.js';
 
-function getTopItems(page = 1, perPage = 15) {
+function getTopItems(page = 1, perPage = 10) {
   return fetchIdsByType('top').then(itemIds => {
     itemIds = itemIds.slice(
       (page - 1) * perPage,
@@ -17,137 +11,230 @@ function getTopItems(page = 1, perPage = 15) {
   });
 }
 
-function decode(str) {
-  const s = '<b>' + str + '</b>';
-  let e = document.createElement('decodeIt');
-  e.innerHTML = s;
-  return e.innerText;
+function attachComments(item) {
+  if (item && item.kids) {
+    return fetchItems(item.kids)
+      .then(items => {
+        return Promise.all(items.map(attachComments));
+      })
+      .then(items => {
+        item.kidsItems = items;
+        return item;
+      });
+  } else {
+    return Promise.resolve(item);
+  }
 }
 
-class App extends Component {
-  componentDidMount() {
-    let handlePageChange = () => {
-      this.setState({ page: null });
+function parseHost(url) {
+  let hostPart = url
+    .replace(/^https?:\/\//, '')
+    .split('/')
+    .shift()
+    .split('.');
 
-      if (location.hash.indexOf('#item/') === 0) {
+  if (hostPart[0] === 'www') {
+    hostPart.shift();
+  }
+
+  return hostPart.join('.');
+}
+
+function renderItemList({ items, p }) {
+  console.log(items);
+  return `
+    <div class="item-list-page">
+      
+      <h1 class="title-link">
+        <a href="#">HN</a>
+      </h1>
+
+      <ul>
+        ${items
+          .map(
+            item => `
+            <li class="item">
+              <div>
+                <a class="item-link" href="#item/${item.id}">${item.title}</a>
+              </div>
+              <div class="item-metas">
+                <span>${item.score} points</span>
+                <span>by ${item.by}</span>
+                ${item.url ? `<span>${' | '}${parseHost(item.url)}</span>` : ''}
+                <span>${' | '}${item.descendants} comments</span>
+              </div>
+            </li>
+          `
+          )
+          .join('')}
+      </ul>
+
+      <a class="more-link" href="#p/${p + 1}">More</a>
+
+    </div>
+  `;
+}
+
+function renderItemDetail({ item }) {
+  console.log(item);
+  let { title, score, by, text, url, descendants } = item;
+
+  return `
+    <div class="item-detail-page">
+      <div class="item-section">
+        <a class="back-button" href="javascript:history.back()">Back</a>
+        <h1>${title}</h1>
+
+        <div class="item-metas">
+          <span>${score} points</span>
+          <span>by ${by}</span>
+          <span>${' | '}${descendants} comments</span>
+        </div>
+
+        ${url ? `<a class="item-url" href="${url}">${url}</a>` : ''}
+        ${text ? `<div class="item-text" href="${text}">${text}</div>` : ''}
+
+        <div class="item-comments">
+          <div class="loading-comments">loading comments...</div>
+        </div>
+
+      </div>
+      <div class="article-section">
+        ${url ? `<iframe src="${url}" />` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function renderLoading() {
+  return `<div class="loading-page">loading...</div>`;
+}
+
+function renderComment(item) {
+  if (!item || !item.text) return '';
+
+  return `
+    <div class="kid">
+      <div class="comment-by">${item.by}</div>
+      <div class="comment-text">${item.text}</div>
+      <div class="kids">
+        ${(item.kidsItems || []).map(renderComment).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function render(state) {
+  switch (state.page) {
+    case 'itemList':
+      document.body.innerHTML = renderItemList(state);
+      document.title = 'HN Split';
+      break;
+    case 'itemDetail':
+      document.body.innerHTML = renderItemDetail(state);
+      document.title = state.item.title;
+      break;
+    default:
+      document.body.innerHTML = renderLoading();
+      break;
+  }
+}
+
+function insertCommentView(item) {
+  console.log('item', item);
+  if (item.kidsItems) {
+    document.querySelector('.item-comments').innerHTML = (item.kidsItems || [])
+      .map(renderComment)
+      .join('');
+  } else {
+    document.querySelector('.item-comments').innerHTML = 'no comments.';
+  }
+}
+
+let lock = {
+  _count: 0,
+  refresh() {
+    this._count++;
+    return this._count;
+  },
+  valid(count) {
+    return count === this._count;
+  }
+};
+
+function main() {
+  let state = {};
+  let routes = [
+    {
+      match: () => location.hash.indexOf('#item/') === 0,
+      handler: () => {
         let id = location.hash.replace('#item/', '');
+        let key = lock.refresh();
+
         fetchItem(id).then(item => {
-          this.setState({ page: 'itemDetail', item: item });
+          if (!lock.valid(key)) return;
+
+          render({
+            ...state,
+            page: 'itemDetail',
+            item: item
+          });
+
           attachComments(item).then(item => {
-            this.setState({
-              page: 'itemDetail',
-              commentAttached: true,
-              item: item
-            });
+            insertCommentView(item);
           });
         });
-      } else if (location.hash.indexOf('#p/') === 0) {
+      }
+    },
+    {
+      match: () => location.hash.indexOf('#p/') === 0,
+      handler: () => {
         let page = +location.hash.replace('#p/', '');
+        let key = lock.refresh();
 
         getTopItems(page).then(items => {
-          this.setState({ page: 'itemList', items: items, p: page });
-        });
-      } else {
-        getTopItems().then(items => {
-          this.setState({ page: 'itemList', items: items, p: 1 });
-        });
-      }
-    };
+          if (!lock.valid(key)) return;
 
-    function attachComments(item) {
-      if (item && item.kids) {
-        return fetchItems(item.kids)
-          .then(items => {
-            return Promise.all(items.map(attachComments));
-          })
-          .then(items => {
-            item.kidsItems = items;
-            return item;
+          render({
+            ...state,
+            page: 'itemList',
+            items: items,
+            p: page
           });
-      } else {
-        return item;
+        });
+      }
+    },
+    {
+      match: '*',
+      handler: () => {
+        let key = lock.refresh();
+        getTopItems().then(items => {
+          if (!lock.valid(key)) return;
+
+          render({
+            ...state,
+            page: 'itemList',
+            items: items,
+            p: 1
+          });
+        });
       }
     }
+  ];
 
-    window.addEventListener('hashchange', handlePageChange, false);
-    handlePageChange();
-  }
+  function handlePageChange() {
+    render({ ...state, page: null });
 
-  render({}, { page = null, ...state }) {
-    if (page === 'itemList') {
-      return this.renderItemList(state);
-    } else if (page === 'itemDetail') {
-      return this.renderItemDetail(state);
-    } else {
-      return 'loading...';
+    for (let pageHandler of routes) {
+      if (pageHandler.match === '*' || pageHandler.match()) {
+        pageHandler.handler();
+        return;
+      }
     }
   }
 
-  renderItemList({ items, p }) {
-    console.log(items);
-
-    return html`
-      <div class="item-list-page">
-        <h1 class="title-link">
-          <a href="#">HN</a>
-        </h1>
-
-        <ul>
-          ${items.map(
-            item => html`
-              <li class="item">
-                <div>
-                  <a class="item-link" href="#item/${item.id}">${item.title}</a>
-                </div>
-                <div class="item-metas">
-                  <span>${item.score} points</span>
-                  <span>by ${item.by}</span>
-                  <span>${' | '}${item.descendants} comments</span>
-                </div>
-              </li>
-            `
-          )}
-        </ul>
-        <a class="more-link" href="#p/${p + 1}">More</a>
-      </div>
-    `;
-  }
-
-  renderItemDetail({ item }) {
-    console.log(item);
-    if (!item) return null;
-
-    return html`
-      <div class="item-detail-page">
-        <div class="item-section">
-          <a class="back-button" href="javascript:history.back()">Back</a>
-          <h1>${item.title}</h1>
-          <a class="item-url" href="${item.url}">${item.url}</a>
-          ${(item.kidsItems || []).map(item => this.renderComment(item))}
-        </div>
-        <div class="article-section">
-          <iframe src="${item.url}" />
-        </div>
-      </div>
-    `;
-  }
-
-  renderComment(item) {
-    return html`
-      <div class="kid">
-        <div class="comment-by">${item.by}</div>
-        <div class="comment-text">${decode(item.text)}</div>
-        <div class="kids">
-          ${(item.kidsItems || []).map(item => this.renderComment(item))}
-        </div>
-      </div>
-    `;
-  }
+  window.addEventListener('hashchange', handlePageChange, false);
+  handlePageChange();
 }
 
-render(
-  html`
-    <${App} page="All" />
-  `,
-  document.body
-);
+main();
