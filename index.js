@@ -1,6 +1,11 @@
 import { fetchIdsByType, fetchItems, fetchItem } from './api.js';
 
-function getTopItems(page = 1, perPage = 10) {
+function getPerPage() {
+  return Math.floor((window.innerHeight - 120) / 65);
+}
+
+function getTopItems(page = 1, perPage) {
+  perPage = perPage || getPerPage();
   return fetchIdsByType('top').then(itemIds => {
     itemIds = itemIds.slice(
       (page - 1) * perPage,
