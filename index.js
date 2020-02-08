@@ -49,7 +49,7 @@ function renderItemList({ items, p }) {
   console.log(items);
   return `
     <div class="item-list-page">
-      
+
       <h1 class="title-link">
         <a href="#">HN</a>
       </h1>
@@ -104,11 +104,13 @@ function renderItemDetail({ item }) {
         </div>
 
       </div>
-      <div class="article-section">
-
-      ${url ? `<iframe is="x-frame-bypass" src="${url}"></iframe>` : ''}
-
-      </div>
+      ${
+        window.innerWidth > 600
+          ? `<div class="article-section">
+              ${url ? `<iframe is="x-frame-bypass" src="${url}"></iframe>` : ''}
+            </div>`
+          : ''
+      }
     </div>
   `;
 }
