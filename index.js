@@ -76,6 +76,7 @@ function renderItemList({ items, p }) {
 
       <a class="more-link" href="#p/${p + 1}">More</a>
 
+      <div class="footer"><a href="https://github.com/GingerBear/hn-split">github repo</a></div>
     </div>
   `;
 }
