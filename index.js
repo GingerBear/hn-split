@@ -6,7 +6,7 @@ function getPerPage() {
 
 function getTopItems(page = 1, perPage) {
   perPage = perPage || getPerPage();
-  return fetchIdsByType('top').then(itemIds => {
+  return fetchIdsByType('top').then((itemIds) => {
     itemIds = itemIds.slice(
       (page - 1) * perPage,
       (page - 1) * perPage + perPage
@@ -19,10 +19,10 @@ function getTopItems(page = 1, perPage) {
 function attachComments(item) {
   if (item && item.kids) {
     return fetchItems(item.kids)
-      .then(items => {
+      .then((items) => {
         return Promise.all(items.map(attachComments));
       })
-      .then(items => {
+      .then((items) => {
         item.kidsItems = items;
         return item;
       });
@@ -57,7 +57,7 @@ function renderItemList({ items, p }) {
       <ul>
         ${items
           .map(
-            item => `
+            (item) => `
             <li class="item">
               <div>
                 <a class="item-link" href="#item/${item.id}">${item.title}</a>
@@ -108,7 +108,6 @@ function renderItemDetail({ item }) {
       ${
         window.innerWidth > 600
           ? `<div class="article-section">
-              ${url ? `<iframe is="x-frame-bypass" src="${url}"></iframe>` : ''}
             </div>`
           : ''
       }
@@ -169,7 +168,7 @@ let lock = {
   },
   valid(count) {
     return count === this._count;
-  }
+  },
 };
 
 function main() {
@@ -181,20 +180,32 @@ function main() {
         let id = location.hash.replace('#item/', '');
         let key = lock.refresh();
 
-        fetchItem(id).then(item => {
+        if (state.popupWindow) state.popupWindow.close();
+
+        fetchItem(id).then((item) => {
           if (!lock.valid(key)) return;
+
+          state.popupWindow = window.open(
+            item.url,
+            item.title,
+            `top=10,left=${window.innerWidth / 2},width=${
+              window.innerWidth / 2 - 20
+            },height=${window.innerHeight - 10}`
+          );
+
+          state.popupWindow.focus();
 
           render({
             ...state,
             page: 'itemDetail',
-            item: item
+            item: item,
           });
 
-          attachComments(item).then(item => {
+          attachComments(item).then((item) => {
             insertCommentView(item);
           });
         });
-      }
+      },
     },
     {
       match: () => location.hash.indexOf('#p/') === 0,
@@ -202,34 +213,39 @@ function main() {
         let page = +location.hash.replace('#p/', '');
         let key = lock.refresh();
 
-        getTopItems(page).then(items => {
+        if (state.popupWindow) state.popupWindow.close();
+
+        getTopItems(page).then((items) => {
           if (!lock.valid(key)) return;
 
           render({
             ...state,
             page: 'itemList',
             items: items,
-            p: page
+            p: page,
           });
         });
-      }
+      },
     },
     {
       match: '*',
       handler: () => {
         let key = lock.refresh();
-        getTopItems().then(items => {
+
+        if (state.popupWindow) state.popupWindow.close();
+
+        getTopItems().then((items) => {
           if (!lock.valid(key)) return;
 
           render({
             ...state,
             page: 'itemList',
             items: items,
-            p: 1
+            p: 1,
           });
         });
-      }
-    }
+      },
+    },
   ];
 
   function handlePageChange() {
